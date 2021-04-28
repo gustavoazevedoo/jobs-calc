@@ -3,67 +3,49 @@ const JobUtils = require("../utils/JobUtils")
 const Profile = require("../model/Profile")
 
 module.exports = {
-  create: (req, res) => {
+  create(req, res) {
     return res.render('job')
   },
-  save: (req, res) => {
-    const jobs = Job.get();
-    // req.body = { name: 'asdf', 'daily-hours': '2', 'total-hours': '2' }
-    const lastId = jobs[jobs.length - 1]?.id || 0
-    jobs.push({
-      id: lastId + 1,
+  async save(req, res) {
+    await Job.create({
       name: req.body.name,
       "daily-hours": req.body["daily-hours"],
       "total-hours": req.body["total-hours"],
       created_at: Date.now()
-    })
+    });
 
     return res.redirect("/")
   },
-  show: (req, res) => {
+  async show(req, res) {
     const { id } = req.params
-    const jobs = Job.get();
+    const jobs = await Job.get();
 
     const job = jobs.find(job => job.id == id)
 
     if (!job) return res.send("Job not found!")
 
-    const profile = Profile.get();
+    const profile = await Profile.get();
     job.budget = JobUtils.calculateBudget(job, profile["value-hour"])
 
     res.render("job-edit", { job })
   },
-  update: (req, res) => {
+  async update(req, res) {
     const { id } = req.params
-    const jobs = Job.get();
-
-    const job = jobs.find(job => job.id == id)
-
-    if (!job) return res.send("Job not found!")
-
+   
     const updatedJob = {
-      ...job,
       name: req.body.name,
       "total-hours": req.body["total-hours"],
       "daily-hours": req.body["daily-hours"]
     }
 
-    const newJobs = jobs.map(job => {
-      if (job.id == id) {
-        job = updatedJob
-      }
-
-      return job
-    })
-
-    Job.update(newJobs)
+    await Job.update(updatedJob, id)
 
     res.redirect(`/job/${id}`)
   },
-  delete: (req, res) => {
+  async delete(req, res) {
     const { id } = req.params
 
-    Job.delete(id)
+    await Job.delete(id)
 
     return res.redirect("/")
   }
